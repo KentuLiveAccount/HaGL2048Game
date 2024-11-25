@@ -7,28 +7,56 @@ import Data.IORef
 
 divisor = 24
 
-data AppState = AS {step :: GLfloat, interval :: Timeout}
-
-initialAppState :: AppState
-initialAppState = (AS 0.0 16)
-
-nextAppState :: AppState -> AppState
-nextAppState (AS st to) = (AS st' to)
-  where
-    st' = if st + increment > 1.0 then 0.0 else st + increment
-    increment = 1.0 / divisor
-
 toRect :: (GLfloat,GLfloat,GLfloat) -> [(GLfloat,GLfloat,GLfloat)]
-toRect (x, y, z) = [(x, y, z), (x + 0.1, y, z), (x + 0.1, y + 0.1, z), (x, y + 0.1, z)]
-
-myPoints :: GLfloat -> [(GLfloat,GLfloat,GLfloat)]
-myPoints dl = concatMap toRect $ map (\(x, y, z) -> (x * 0.9, y * 0.9, z * 0.9)) 
-  [ (sin (delta + 2*pi*k/divisor), cos (delta + 2*pi*k/divisor), 0) | k <- [1] ]
-    where
-        delta = 2 * pi / divisor * dl
+toRect (x1, y1, z1) = [(x - 0.05, y - 0.05, z), (x +  0.05, y - 0.05, z), (x + 0.05, y + 0.05, z), (x - 0.05, y + 0.05, z)]
+  where
+    x = x1 -- * 0.9
+    y = y1 -- * 0.9
+    z = z1 -- * 0.9
 
 color3f :: GLfloat -> GLfloat -> GLfloat -> IO ()
 color3f r g b = color $ Color3 r g b
+
+data LinearMotion = LM {
+    cur :: (GLfloat, GLfloat),
+    dest :: (GLfloat, GLfloat)
+}
+
+advanceLm :: LinearMotion -> LinearMotion
+advanceLm (LM (cx, cy) (dx, dy)) = (LM (cx', cy') (dx, dy))
+  where
+    epsilon = (2::GLfloat) / divisor
+    cx' = foo cx dx epsilon
+    cy' = foo cy dy epsilon
+    foo :: GLfloat -> GLfloat -> GLfloat -> GLfloat
+    foo cur dest eps = if (abs $ dest - cur) < eps then dest else (if (cur < dest) then cur + eps else cur - eps)
+
+moveLm :: (GLfloat, GLfloat) -> LinearMotion -> LinearMotion
+moveLm (xm, ym) (LM (cx, cy) (dx, dy)) = (LM (cx, cy) (dx', dy'))
+  where
+    epsilon = (2::GLfloat) / divisor
+    dx' = foo xm cx dx epsilon
+    dy' = foo ym cy dy epsilon
+    foo :: GLfloat -> GLfloat -> GLfloat -> GLfloat -> GLfloat
+    foo m cur dest eps = if (((abs m) < epsilon) || (abs $ dest - cur) >= eps) then dest else (if (m < 0) then -1 else 1)
+
+data AppState = AS {
+  motions :: [LinearMotion], -- Left (cur), (to) | Right (cur)
+  interval :: Timeout -- time out intervals
+  }
+
+onMotion :: ([LinearMotion] -> [LinearMotion]) -> AppState -> AppState
+onMotion f as = as {motions = (f $ motions as)}
+
+
+initialAppState :: AppState
+initialAppState = (AS [LM (-1, 1) (-1, 1)] 16)
+
+nextAppState :: AppState -> AppState
+nextAppState (AS lms to) = (AS lms' to)
+  where
+    lms' = map (advanceLm) lms
+    increment = 1.0 / divisor
 
 main :: IO ()
 main = do
@@ -42,16 +70,30 @@ main = do
   windowSize $= (Size 600 600)
   mainLoop
 
+{- 
+(0, 0) : middle of window
+(-1, 1): upper left corner
+(1, 1) : upper right corner
+-}
+
+foo:: LinearMotion -> [(GLfloat, GLfloat, GLfloat)]
+foo = toRect.(\(x, y) -> (x, y, 0)).cur
+
 display :: IORef AppState -> DisplayCallback
 display ior = do 
-  (AS dl _) <- readIORef ior
+  (AS lms _) <- readIORef ior
   clear [ColorBuffer] -- ColorBuffer :: ClearBuffer
   preservingMatrix ( do
-    scale 0.8 0.8 (0.8::GLfloat)
+    -- scale 0.8 0.8 (0.8::GLfloat)
+    scale 0.9 0.9 (0.9::GLfloat)
     -- renderPrimitive :: PrimitiveMode -> IO a -> IO a
     renderPrimitive Quads $ do
-      color3f 1 0 0
-      mapM_ (\(x, y, z) ->  (vertex $ Vertex3 x y z)) $ myPoints dl)
+      color3f 0 1 0
+      mapM_ (\(x, y, z) ->  (vertex $ Vertex3 x y z)) $ concat [toRect (0::GLfloat, 0, 0), toRect (1::GLfloat, 1, 1), toRect (-1::GLfloat, 1, 1)]
+    renderPrimitive Quads $ do
+      color3f 0 0 1
+      mapM_ (\(x, y, z) ->  (vertex $ Vertex3 x y z)) $ concatMap (toRect.(\(x, y) -> (x, y, 0)).cur) lms
+    )
   swapBuffers
 
 timerProc :: IORef AppState -> IO ()
@@ -64,8 +106,9 @@ timerProc ior = do
 -- ($~!) :: MonadIO m => t -> (a -> b) -> m () 
 keyboardMouse :: IORef AppState -> KeyboardMouseCallback
 keyboardMouse ior key Down _ _ = case key of
-  --(Char ' ') -> ior $~! \(AS st to) -> AS (negate st) to
-  (SpecialKey KeyLeft ) -> ior $~! \(AS st to) -> AS st (max 0 (to - 1))
-  (SpecialKey KeyRight) -> ior $~! \(AS st to) -> AS st (min 16 (to + 1))
+  (SpecialKey KeyLeft ) -> ior $~! onMotion (map (moveLm (-1,  0)))
+  (SpecialKey KeyRight) -> ior $~! onMotion (map (moveLm ( 1,  0)))
+  (SpecialKey KeyUp   ) -> ior $~! onMotion (map (moveLm ( 0,  1)))
+  (SpecialKey KeyDown ) -> ior $~! onMotion (map (moveLm ( 0, -1)))
   _ -> return ()
 keyboardMouse _ _ _ _ _ = return ()
