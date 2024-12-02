@@ -4,6 +4,7 @@ import Lib
 
 import Graphics.UI.GLUT
 import Data.IORef
+import Data.List (sortBy)
 
 divisor = 24
 
@@ -28,7 +29,7 @@ gridPosToPos v = -1 + increments + 2 * increments * (fromIntegral v)
     increments = 2 / (2 * (fromIntegral grids))
 
 
-sign :: GLfloat -> GLfloat
+sign :: (Ord a, Num a) => a -> a
 sign v = if (v < 0) then -1 else 1
 
 toRect :: (GLfloat,GLfloat,GLfloat) -> [(GLfloat,GLfloat,GLfloat)]
@@ -37,15 +38,30 @@ toRect (x1, y1, z1) = [(x - hwh, y - hwh, z), (x +  hwh, y - hwh, z), (x + hwh, 
     x = x1 -- * 0.9
     y = y1 -- * 0.9
     z = z1 -- * 0.9
-    hwh = wh / 2
+    hwh = (wh / 2) * 0.95
 
 color3f :: GLfloat -> GLfloat -> GLfloat -> IO ()
 color3f r g b = color $ Color3 r g b
+
+data Tile = TL {pos :: (Int, Int)} deriving (Eq)
 
 data LinearMotion = LM {
     cur :: (GLfloat, GLfloat),
     dest :: (GLfloat, GLfloat)
 }
+
+stillMotion :: Tile -> LinearMotion
+stillMotion (TL (x, y)) =LM (gridPosToPos x, gridPosToPos y) (gridPosToPos x, gridPosToPos y)
+
+enMotion :: Tile -> Tile -> LinearMotion
+enMotion (TL (xs, ys)) (TL (xd, yd)) =LM (gridPosToPos xs, gridPosToPos ys) (gridPosToPos xd, gridPosToPos yd)
+
+anyMotion :: [LinearMotion] -> Bool
+anyMotion lms = any f lms
+  where
+    f :: LinearMotion -> Bool
+    f (LM (cx, cy) (dx, dy)) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps
+    eps = (2::GLfloat) / divisor
 
 animateLm :: LinearMotion -> LinearMotion
 animateLm (LM (cx, cy) (dx, dy)) = (LM (cx', cy') (dx, dy))
@@ -56,38 +72,75 @@ animateLm (LM (cx, cy) (dx, dy)) = (LM (cx', cy') (dx, dy))
     advance :: GLfloat -> GLfloat -> GLfloat -> GLfloat
     advance cur dest eps = if (abs $ dest - cur) < (eps / 2) then dest else (cur + eps * (sign $ dest - cur))
 
-moveDestLm :: (GLfloat, GLfloat) -> LinearMotion -> LinearMotion
+moveDestLm :: (Int, Int) -> LinearMotion -> LinearMotion
 moveDestLm (xm, ym) (LM (cx, cy) (dx, dy)) = (LM (cx, cy) (dx', dy'))
   where
-    epsilon = (2::GLfloat) / divisor
-    dx' = newValue xm cx dx epsilon
-    dy' = newValue ym cy dy epsilon
-    newValue :: GLfloat -> GLfloat -> GLfloat -> GLfloat -> GLfloat
-    newValue m cur dest eps = if ((abs m) < epsilon) then dest else (if ((sign m) < 0) then (gridPosToPos 0) else (gridPosToPos 3))
+    dx' = newValue xm cx dx
+    dy' = newValue ym cy dy
+    newValue :: Int -> GLfloat -> GLfloat -> GLfloat
+    newValue m cur dest = if ((abs m) == 0) then dest else (if ((sign m) < 0) then (gridPosToPos 0) else (gridPosToPos 3))
 
-anyMotion :: [LinearMotion] -> Bool
-anyMotion lms = any f lms
+moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
+moveTiles dir@(xm, ym) tiles = (tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted == tiles')
   where
-    f :: LinearMotion -> Bool
-    f (LM (cx, cy) (dx, dy)) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps
-    eps = (2::GLfloat) / divisor
+    tilesSorted = sortBy (sortDir dir) tiles
+    tiles' = concatMap (moveDir dir) $ splitDir dir tilesSorted
+
+    sortDir :: (Int, Int) -> Tile -> Tile -> Ordering
+    sortDir (-1,  0) (TL (xa, ya)) (TL (xb, yb)) = if (xa == xb) then (compare ya yb) else (compare xa xb)
+    sortDir ( 1,  0) (TL (xa, ya)) (TL (xb, yb)) = if (xa == xb) then (compare ya yb) else (compare xb xa)
+    sortDir ( 0, -1) (TL (xa, ya)) (TL (xb, yb)) = if (ya == yb) then (compare xa xb) else (compare ya yb)
+    sortDir ( 0,  1) (TL (xa, ya)) (TL (xb, yb)) = if (ya == yb) then (compare xa xb) else (compare yb ya)
+    sortDir (_, _) _ _ = EQ
+   
+    splitDir :: (Int, Int) -> [Tile] -> [[Tile]]
+    splitDir _ [] = [[]]
+    splitDir _ [t] = [[t]]
+    splitDir dir (t:tls) = (t:ms): (splitDir dir us)
+      where
+        (ms, us) = span (predDir dir t) tls
+
+    predDir :: (Int, Int) -> Tile -> Tile -> Bool
+    predDir (-1,  0) (TL (x1, _)) (TL (x2, _)) = x1 == x2
+    predDir ( 1,  0) (TL (x1, _)) (TL (x2, _)) = x1 == x2
+    predDir ( 0, -1) (TL (_, y1)) (TL (_, y2)) = y1 == y2
+    predDir ( 0,  1) (TL (_, y1)) (TL (_, y2)) = y1 == y2
+
+    moveDir :: (Int, Int) -> [Tile] -> [Tile]
+    moveDir dir tls = zipWith (fn) tls (dirNum dir)
+      where
+        fn :: Tile -> (Int, Int) -> Tile
+        fn (TL (x, y)) (xn, 0) = TL (xn, y)
+        fn (TL (x, y)) (0, yn) = TL (x, yn)
+        fn (TL (x, y)) (0, 0) = TL (x, y)
+
+    dirNum :: (Int, Int) -> [(Int, Int)]
+    dirNum (1, 0) = [(x, 0) | x <- [(grids - 1)..0]]
+    dirNum (-1, 0) = [(x, 0) | x <- [0..(grids - 1)]]
+    dirNum (0, 1) = [(0, y) | y <- [(grids - 1)..0]]
+    dirNum (0, -1) = [(0, y) | y <- [0..(grids - 1)]]
 
 data AppState = AS {
+  tiles :: [Tile],
   motions :: [LinearMotion], -- Left (cur), (to) | Right (cur)
   interval :: Timeout -- time out intervals
   }
 
 initialAppState :: AppState
-initialAppState = (AS [LM (gridPosToPos 0, gridPosToPos 3) (gridPosToPos 0, gridPosToPos 3), LM (gridPosToPos 0, gridPosToPos 2) (gridPosToPos 0, gridPosToPos 2)] 16)
+initialAppState = AS tiles (initialLMs tiles) 0
+  where
+    tiles = [TL (0, 3), TL (0, 2)]
+    initialLMs :: [Tile] -> [LinearMotion]
+    initialLMs  = map (stillMotion)
 
 onMotion :: ([LinearMotion] -> [LinearMotion]) -> AppState -> AppState
-onMotion f (AS lms to) = AS lms' to'
+onMotion f (AS tls lms to) = AS tls lms' to'
   where
     lms' = if (to == 0) then (f lms) else lms
     to' = if (anyMotion lms') then 16 else 0
 
-nextAppState :: AppState -> AppState
-nextAppState (AS lms to) = (AS lms' to')
+onTime :: AppState -> AppState
+onTime (AS tls lms to) = (AS tls lms' to')
   where
     lms' = map (animateLm) lms
     increment = 1.0 / divisor
@@ -113,7 +166,7 @@ main = do
 
 display :: IORef AppState -> DisplayCallback
 display ior = do 
-  (AS lms _) <- readIORef ior
+  (AS _ lms _) <- readIORef ior
   clear [ColorBuffer] -- ColorBuffer :: ClearBuffer
   preservingMatrix ( do
     --scale 0.8 0.8 (0.8::GLfloat)
@@ -133,7 +186,7 @@ display ior = do
 
 updateTimer :: IORef AppState -> IO ()
 updateTimer ior = do
-    (AS _ timeout) <- readIORef ior
+    (AS _ _ timeout) <- readIORef ior
     if (timeout > 0) then addTimerCallback timeout $ timerProc ior else return ()
 
 
@@ -141,7 +194,7 @@ timerProc :: IORef AppState -> IO ()
 timerProc ior = do
     updateTimer ior
     postRedisplay Nothing
-    modifyIORef ior nextAppState
+    modifyIORef ior onTime
 
 -- ($~!) :: MonadIO m => t -> (a -> b) -> m () 
 keyboardMouse :: IORef AppState -> KeyboardMouseCallback
