@@ -16,12 +16,12 @@ module Lib (
 import Graphics.UI.GLUT (GLfloat)
 import Data.List (sortBy)
 
-data Tile = TL {pos :: (Int, Int)} deriving (Eq)
+data Tile = TL {pos :: (Int, Int)} deriving (Eq, Show)
 
 data LinearMotion = LM {
     cur :: (GLfloat, GLfloat),
     dest :: (GLfloat, GLfloat)
-}
+} deriving (Eq, Show)
 
 grids :: Int
 grids = 4
@@ -41,13 +41,12 @@ enMotion :: Tile -> Tile -> LinearMotion
 enMotion (TL (xs, ys)) (TL (xd, yd)) =LM (gridPosToPos xs, gridPosToPos ys) (gridPosToPos xd, gridPosToPos yd)
 
 predDir :: (Int, Int) -> Tile -> Tile -> Bool
-predDir (-1,  0) (TL (x1, _)) (TL (x2, _)) = x1 == x2
-predDir ( 1,  0) (TL (x1, _)) (TL (x2, _)) = x1 == x2
-predDir ( 0, -1) (TL (_, y1)) (TL (_, y2)) = y1 == y2
-predDir ( 0,  1) (TL (_, y1)) (TL (_, y2)) = y1 == y2
+predDir ( 0,  0) (TL (x1, _)) (TL (x2, _)) = True
+predDir ( 0,  _) (TL (x1, _)) (TL (x2, _)) = x1 == x2
+predDir ( _,  0) (TL (_, y1)) (TL (_, y2)) = y1 == y2
 
 splitDir :: (Int, Int) -> [Tile] -> [[Tile]]
-splitDir _ [] = [[]]
+splitDir _ [] = []
 splitDir _ [t] = [[t]]
 splitDir dir (t:tls) = (t:ms): (splitDir dir us)
     where
@@ -61,17 +60,17 @@ sortDir ( 0,  1) (TL (xa, ya)) (TL (xb, yb)) = if (ya == yb) then (compare xa xb
 sortDir (_, _) _ _ = EQ
 
 moveDir :: (Int, Int) -> [Tile] -> [Tile]
-moveDir dir tls = zipWith (fn) tls (dirNum dir)
+moveDir dir tls = zipWith (fn dir) tls (dirNum dir)
     where
-    fn :: Tile -> (Int, Int) -> Tile
-    fn (TL (x, y)) (0, 0) = TL (x, y)
-    fn (TL (x, y)) (xn, 0) = TL (xn, y)
-    fn (TL (x, y)) (0, yn) = TL (x, yn)
+    fn :: (Int, Int) -> Tile -> (Int, Int) -> Tile
+    fn (0, 0) (TL (x, y))  _       = TL (x, y)
+    fn (_, 0) (TL (x, y)) (xn,  _) = TL (xn, y)
+    fn (0, _) (TL (x, y)) ( _, yn) = TL (x, yn)
 
 dirNum :: (Int, Int) -> [(Int, Int)]
-dirNum (1, 0) = [(x, 0) | x <- [(grids - 1)..0]]
+dirNum (1, 0) = [(x, 0) | x <- (reverse [0..(grids - 1)])]
 dirNum (-1, 0) = [(x, 0) | x <- [0..(grids - 1)]]
-dirNum (0, 1) = [(0, y) | y <- [(grids - 1)..0]]
+dirNum (0, 1) = [(0, y) | y <- (reverse [0..(grids - 1)])]
 dirNum (0, -1) = [(0, y) | y <- [0..(grids - 1)]]
 
 moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)

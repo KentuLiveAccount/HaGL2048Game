@@ -69,8 +69,8 @@ data AppState = AS {
 initialAppState :: AppState
 initialAppState = AS tiles (initialLMs tiles) 0
   where
-    tiles = [TL (0, 3)]
---    tiles = [TL (0, 3), TL (0, 2)]
+--    tiles = [TL (0, 3)]
+    tiles = [TL (0, 3), TL (0, 2)]
     initialLMs :: [Tile] -> [LinearMotion]
     initialLMs  = map (stillMotion)
 
@@ -148,9 +148,9 @@ timerProc ior = do
 -- ($~!) :: MonadIO m => t -> (a -> b) -> m () 
 keyboardMouse :: IORef AppState -> KeyboardMouseCallback
 keyboardMouse ior key Down _ _ = case key of
-  (SpecialKey KeyLeft ) -> ior $~! onMove (-1, 0) >> updateTimer ior
-  (SpecialKey KeyRight) -> ior $~! onMove ( 1, 0) >> updateTimer ior
-  (SpecialKey KeyUp   ) -> ior $~! onMotion (map (moveDestLm ( 0,  1))) >> updateTimer ior
-  (SpecialKey KeyDown ) -> ior $~! onMotion (map (moveDestLm ( 0, -1))) >> updateTimer ior
+  (SpecialKey KeyLeft ) -> ior $~! onMove (-1,  0) >> updateTimer ior
+  (SpecialKey KeyRight) -> ior $~! onMove ( 1,  0) >> updateTimer ior
+  (SpecialKey KeyUp ) -> ior $~! onMove ( 0,  1) >> updateTimer ior
+  (SpecialKey KeyDown) -> ior $~! onMove ( 0, -1) >> updateTimer ior
   _ -> return ()
 keyboardMouse _ _ _ _ _ = return ()
