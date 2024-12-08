@@ -75,8 +75,20 @@ dirNum (-1, 0) = [(x, 0) | x <- [0..(grids - 1)]]
 dirNum (0, 1) = [(0, y) | y <- (reverse [0..(grids - 1)])]
 dirNum (0, -1) = [(0, y) | y <- [0..(grids - 1)]]
 
+consolidateTiles :: [Tile] -> [Tile]
+consolidateTiles [] = []
+consolidateTiles [t] = [t]
+consolidateTiles (t1:t2:ts) = if (v1 == v2 && (abs $ x1 - x2) + (abs $ y1 - y2) == 1) then
+         ((TL (x1, y1) (v1 + v1)) : (consolidateTiles ts)) 
+         else (t1 : (consolidateTiles $ t2:ts))
+    where
+        (x1, y1) =  pos t1
+        v1 = val t1
+        (x2, y2) = pos t2
+        v2 = val t2
+
 moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
 moveTiles dir tiles = (tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted /= tiles')
   where
     tilesSorted = sortBy (sortDir dir) tiles
-    tiles' = concatMap (moveDir dir) $ splitDir dir tilesSorted
+    tiles' = concatMap (moveDir dir) $ map consolidateTiles $ splitDir dir tilesSorted
