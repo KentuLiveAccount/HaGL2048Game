@@ -67,15 +67,14 @@ initialAppState = AS tiles (initialLMs tiles) 0
     initialLMs  = map (stillMotion)
 
 onMove :: (Int, Int) -> AppState -> AppState
-onMove mv (AS tls lms to) = (AS tls' lms (if f then 16 else 0))
+onMove mv (AS tls lms _) = (AS tls' lms' (if f then 16 else 0))
     where
-      (tls', lms, f) = moveTiles mv tls
+      (tls', lms', f) = moveTiles mv tls
 
 onTime :: AppState -> AppState
 onTime (AS tls lms to) = (AS tls lms' to')
   where
     lms' = map (animateLm) lms
-    increment = 1.0 / divisor
     to' = if (anyMotion lms') then to else 0
 
 winWidth :: GLsizei
