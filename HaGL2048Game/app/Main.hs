@@ -38,26 +38,18 @@ anyMotion :: [LinearMotion] -> Bool
 anyMotion lms = any f lms
   where
     f :: LinearMotion -> Bool
-    f (LM (cx, cy) (dx, dy)) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps
+    f (LM (cx, cy) (dx, dy) _ _) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps
     eps = (2::GLfloat) / divisor
 
 animateLm :: LinearMotion -> LinearMotion
-animateLm (LM (cx, cy) (dx, dy)) = (LM (cx', cy') (dx, dy))
+animateLm (LM (cx, cy) (dx, dy) vs vd) = (LM (cx', cy') (dx, dy) vs' vd)
   where
     epsilon = (2::GLfloat) / divisor
-    cx' = advance cx dx epsilon
-    cy' = advance cy dy epsilon
-    advance :: GLfloat -> GLfloat -> GLfloat -> GLfloat
-    advance cur dest eps = if (abs $ dest - cur) < (eps / 2) then dest else (cur + eps * (sign $ dest - cur))
-
-moveDestLm :: (Int, Int) -> LinearMotion -> LinearMotion
-moveDestLm (xm, ym) (LM (cx, cy) (dx, dy)) = (LM (cx, cy) (dx', dy'))
-  where
-    dx' = newValue xm cx dx
-    dy' = newValue ym cy dy
-    newValue :: Int -> GLfloat -> GLfloat -> GLfloat
-    newValue m cur dest = if ((abs m) == 0) then dest else (if ((sign m) < 0) then (gridPosToPos 0) else (gridPosToPos 3))
-
+    cx' = advance cx dx
+    cy' = advance cy dy
+    vs' = if (abs $ cx' - dx) < (epsilon / 2) && (abs $ cy' - dx) < (epsilon / 2) then vd else vs
+    advance :: GLfloat -> GLfloat -> GLfloat
+    advance cur dest = if (abs $ dest - cur) < (epsilon / 2) then dest else (cur + epsilon * (sign $ dest - cur))
 
 
 data AppState = AS {
@@ -70,17 +62,9 @@ initialAppState :: AppState
 initialAppState = AS tiles (initialLMs tiles) 0
   where
 --    tiles = [TL (0, 3)]
-    tiles = [TL (0, 3), TL (0, 2)]
+    tiles = [TL (0, 3) 1, TL (0, 2) 1]
     initialLMs :: [Tile] -> [LinearMotion]
     initialLMs  = map (stillMotion)
-
-onMotion :: ([LinearMotion] -> [LinearMotion]) -> AppState -> AppState
-onMotion f (AS tls lms to) = AS tls lms' to'
-  where
-    lms' = if (to == 0) then (f lms) else lms
-    to' = if (anyMotion lms') then 16 else 0
-
---moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
 
 onMove :: (Int, Int) -> AppState -> AppState
 onMove mv (AS tls lms to) = (AS tls' lms (if f then 16 else 0))
@@ -94,6 +78,9 @@ onTime (AS tls lms to) = (AS tls lms' to')
     increment = 1.0 / divisor
     to' = if (anyMotion lms') then to else 0
 
+winWidth :: GLsizei
+winWidth = 600
+
 main :: IO ()
 main = do
   (_progName, _args) <- getArgsAndInitialize
@@ -103,7 +90,7 @@ main = do
   displayCallback $= (display stateRef)
   addTimerCallback 16 (timerProc stateRef)
   keyboardMouseCallback $= Just (keyboardMouse stateRef)
-  windowSize $= (Size 600 600)
+  windowSize $= (Size winWidth winWidth)
   mainLoop
 
 {- 
@@ -111,6 +98,15 @@ main = do
 (-1, 1): upper left corner
 (1, 1) : upper right corner
 -}
+
+renderLabel :: LinearMotion -> IO ()
+renderLabel (LM (x, y) (_, _) v _) = do
+    hdx <- stringWidth TimesRoman24 (show v) >>= \dx -> return $ (fromIntegral dx) / (fromIntegral winWidth)
+    hdy <- fontHeight TimesRoman24 >>= \dy -> return $ dy / (fromIntegral winWidth)
+    --putStrLn $ "dx, dy" ++ (show dx) ++ ", " ++ (show dy)
+    rasterPos (Vertex3 (x - hdx) (y - hdy) (1 :: GLfloat))
+    --rasterPos (Vertex3 x y (1 :: GLfloat))
+    renderString TimesRoman24 (show v)
 
 display :: IORef AppState -> DisplayCallback
 display ior = do 
@@ -129,6 +125,8 @@ display ior = do
     renderPrimitive Quads $ do
       color3f 0 0 1
       mapM_ (\(x, y, z) ->  (vertex $ Vertex3 x y z)) $ concatMap (toRect.(\(x, y) -> (x, y, 0)).cur) lms
+    color (Color3 1 1 (1 :: GLfloat))
+    mapM_ renderLabel lms
     )
   swapBuffers
 
