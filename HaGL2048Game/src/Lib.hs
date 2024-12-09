@@ -55,10 +55,10 @@ splitDir dir (t:tls) = (t:ms): (splitDir dir us)
     (ms, us) = span (predDir dir t) tls
 
 sortDir :: (Int, Int) -> Tile -> Tile -> Ordering
-sortDir (-1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xa xb)
-sortDir ( 1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xb xa)
-sortDir ( 0, -1) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xa xb) else (compare ya yb)
-sortDir ( 0,  1) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xa xb) else (compare yb ya)
+sortDir ( 0, -1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xa xb)
+sortDir ( 0,  1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare yb ya) else (compare xa xb)
+sortDir (-1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xa xb) else (compare yb ya)
+sortDir ( 1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xb xa) else (compare ya yb)
 sortDir (_, _) _ _ = EQ
 
 moveDir :: (Int, Int) -> [Tile] -> [Tile]
@@ -90,5 +90,5 @@ consolidateTiles (t1:t2:ts) = if (v1 == v2 && (abs $ x1 - x2) + (abs $ y1 - y2) 
 moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
 moveTiles dir tiles = (tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted /= tiles')
   where
-    tilesSorted = sortBy (sortDir dir) tiles
-    tiles' = concatMap (moveDir dir) $ map consolidateTiles $ splitDir dir tilesSorted
+    tilesSorted = concatMap consolidateTiles $ splitDir dir $ sortBy (sortDir dir) tiles
+    tiles' = concatMap (moveDir dir) $ splitDir dir tilesSorted

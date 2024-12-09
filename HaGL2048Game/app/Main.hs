@@ -38,18 +38,18 @@ anyMotion :: [LinearMotion] -> Bool
 anyMotion lms = any f lms
   where
     f :: LinearMotion -> Bool
-    f (LM (cx, cy) (dx, dy) _ _) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps
-    eps = (2::GLfloat) / divisor
+    f (LM (cx, cy) (dx, dy) vc vd) = (abs $ dx - cx) > eps || (abs $ dy - cy) > eps || vc /= vd
+    eps = (1::GLfloat) / divisor
 
 animateLm :: LinearMotion -> LinearMotion
 animateLm (LM (cx, cy) (dx, dy) vs vd) = (LM (cx', cy') (dx, dy) vs' vd)
   where
-    epsilon = (2::GLfloat) / divisor
+    epsilon = (1::GLfloat) / divisor
     cx' = advance cx dx
     cy' = advance cy dy
-    vs' = if (abs $ cx' - dx) < (epsilon / 2) && (abs $ cy' - dx) < (epsilon / 2) then vd else vs
+    vs' = if (abs $ cx' - dx) < epsilon && (abs $ cy' - dx) < epsilon then vd else vs
     advance :: GLfloat -> GLfloat -> GLfloat
-    advance cur dest = if (abs $ dest - cur) < (epsilon / 2) then dest else (cur + epsilon * (sign $ dest - cur))
+    advance cur dest = if (abs $ dest - cur) < epsilon then dest else (cur + epsilon * 2 * (sign $ dest - cur))
 
 
 data AppState = AS {
@@ -62,7 +62,7 @@ initialAppState :: AppState
 initialAppState = AS tiles (initialLMs tiles) 0
   where
 --    tiles = [TL (0, 3)]
-    tiles = [TL (0, 3) 1, TL (0, 2) 1]
+    tiles = [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1, TL (1, 1) 1]
     initialLMs :: [Tile] -> [LinearMotion]
     initialLMs  = map (stillMotion)
 
