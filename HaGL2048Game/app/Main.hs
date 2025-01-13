@@ -47,7 +47,7 @@ animateLm (LM (cx, cy) (dx, dy) vs vd) = (LM (cx', cy') (dx, dy) vs' vd)
     epsilon = (1::GLfloat) / divisor
     cx' = advance cx dx
     cy' = advance cy dy
-    vs' = if (abs $ cx' - dx) < epsilon && (abs $ cy' - dx) < epsilon then vd else vs
+    vs' = if (abs $ cx' - dx) < epsilon && (abs $ cy' - dy) < epsilon then vd else vs
     advance :: GLfloat -> GLfloat -> GLfloat
     advance cur dest = if (abs $ dest - cur) < epsilon then dest else (cur + epsilon * 2 * (sign $ dest - cur))
 
@@ -56,7 +56,7 @@ data AppState = AS {
   tiles :: [Tile],
   motions :: [LinearMotion], -- Left (cur), (to) | Right (cur)
   interval :: Timeout -- time out intervals
-  }
+  } deriving (Show)
 
 initialAppState :: AppState
 initialAppState = AS tiles (initialLMs tiles) 0
@@ -75,7 +75,7 @@ onTime :: AppState -> AppState
 onTime (AS tls lms to) = (AS tls lms' to')
   where
     lms' = map (animateLm) lms
-    to' = if (anyMotion lms') then to else 0
+    to' = if (anyMotion lms) then to else 0
 
 winWidth :: GLsizei
 winWidth = 600
@@ -131,16 +131,14 @@ display ior = do
 
 updateTimer :: IORef AppState -> IO ()
 updateTimer ior = do
-    (AS _ _ timeout) <- readIORef ior
+    as@(AS _ _ timeout) <- readIORef ior
     if (timeout > 0) then addTimerCallback timeout $ timerProc ior else return ()
-
 
 timerProc :: IORef AppState -> IO ()
 timerProc ior = do
     updateTimer ior
     postRedisplay Nothing
     modifyIORef ior onTime
-
 
 -- ($~!) :: MonadIO m => t -> (a -> b) -> m () 
 keyboardMouse :: IORef AppState -> KeyboardMouseCallback

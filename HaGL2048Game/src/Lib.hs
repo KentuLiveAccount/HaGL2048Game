@@ -79,7 +79,7 @@ consolidateTiles :: [Tile] -> [Tile]
 consolidateTiles [] = []
 consolidateTiles [t] = [t]
 consolidateTiles (t1:t2:ts) = if (v1 == v2 && (abs $ x1 - x2) + (abs $ y1 - y2) == 1) then
-         ((TL (x1, y1) (v1 + v1)) : (consolidateTiles ts)) 
+         ((TL (x1, y1) (v1 + v1)) : (TL (x1, y1) (v1 + v1)) : (consolidateTiles ts)) 
          else (t1 : (consolidateTiles $ t2:ts))
     where
         (x1, y1) =  pos t1
@@ -87,8 +87,16 @@ consolidateTiles (t1:t2:ts) = if (v1 == v2 && (abs $ x1 - x2) + (abs $ y1 - y2) 
         (x2, y2) = pos t2
         v2 = val t2
 
+filterDuplicate :: [Tile] -> [Tile]
+filterDuplicate [] = []
+filterDuplicate [a] = [a]
+filterDuplicate (a1:a2:as)
+    | (pos a1) == (pos a2) = a2 : (filterDuplicate as)
+    | otherwise = a1 : (filterDuplicate (a2:as))
+
 moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
-moveTiles dir tiles = (tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted /= tiles')
+moveTiles dir tiles = (filterDuplicate tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted /= tiles')
   where
-    tilesSorted = concatMap consolidateTiles $ splitDir dir $ sortBy (sortDir dir) tiles
-    tiles' = concatMap (moveDir dir) $ splitDir dir tilesSorted
+    --tilesSorted = concatMap consolidateTiles $ splitDir dir $ sortBy (sortDir dir) tiles
+    tilesSorted = sortBy (sortDir dir) tiles
+    tiles' = concat $ map (consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
