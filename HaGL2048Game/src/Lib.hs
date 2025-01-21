@@ -14,7 +14,7 @@ module Lib (
     ) where
 
 import Graphics.UI.GLUT (GLfloat)
-import Data.List (sortBy)
+import Data.List (sortBy, groupBy)
 
 data Tile = TL {pos :: (Int, Int), val :: Int} deriving (Eq, Show)
 
@@ -61,13 +61,16 @@ sortDir (-1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare x
 sortDir ( 1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xb xa) else (compare ya yb)
 sortDir (_, _) _ _ = EQ
 
+samePos :: Tile -> Tile -> Bool
+samePos t1 t2 = (pos t1) == (pos t2)
+
 moveDir :: (Int, Int) -> [Tile] -> [Tile]
-moveDir dir tls = zipWith (fn dir) tls (dirNum dir)
+moveDir dir tls = concat $ zipWith (\x y -> map (fn dir x) y) (dirNum dir) (groupBy (samePos) tls)
     where
-    fn :: (Int, Int) -> Tile -> (Int, Int) -> Tile
-    fn (0, 0) (TL (x, y) v)  _       = TL ( x,  y) v
-    fn (_, 0) (TL (x, y) v) (xn,  _) = TL (xn,  y) v
-    fn (0, _) (TL (x, y) v) ( _, yn) = TL ( x, yn) v
+    fn :: (Int, Int) -> (Int, Int) -> Tile -> Tile
+    fn (0, 0)  _       (TL (x, y) v) = TL ( x,  y) v
+    fn (_, 0) (xn,  _) (TL (x, y) v) = TL (xn,  y) v
+    fn (0, _) ( _, yn) (TL (x, y) v) = TL ( x, yn) v
 
 dirNum :: (Int, Int) -> [(Int, Int)]
 dirNum (1, 0) = [(x, 0) | x <- (reverse [0..(grids - 1)])]
@@ -95,8 +98,15 @@ filterDuplicate (a1:a2:as)
     | otherwise = a1 : (filterDuplicate (a2:as))
 
 moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
-moveTiles dir tiles = (filterDuplicate tiles', zipWith (enMotion) tilesSorted tiles', tilesSorted /= tiles')
+moveTiles dir tiles = (
+    if (noNew) then tiles'' else (newTile : tiles'') ,
+    if (noNew) then lms else (stillMotion newTile : lms), changed)
   where
     --tilesSorted = concatMap consolidateTiles $ splitDir dir $ sortBy (sortDir dir) tiles
     tilesSorted = sortBy (sortDir dir) tiles
     tiles' = concat $ map (consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
+    changed = tilesSorted /= tiles'
+    tiles'' = filterDuplicate tiles'
+    newTile = (TL (0, 3) 1)
+    noNew = any (\x -> (pos x) == (pos newTile)) tiles''
+    lms = zipWith (enMotion) tilesSorted tiles'
