@@ -69,7 +69,7 @@ initialAppState = AS tiles (initialLMs tiles) 0
 onMove :: (Int, Int) -> AppState -> AppState
 onMove mv (AS tls lms _) = (AS tls' lms' (if f then 16 else 0))
     where
-      (tls', lms', f) = moveTiles mv tls
+      (tls', lms', f) = moveTiles True mv tls
 
 onTime :: AppState -> AppState
 onTime (AS tls lms to) = (AS tls lms' to')

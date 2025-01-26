@@ -26,16 +26,16 @@ tests = [
     ("testDirNum_-X",          expectEqual (dirNum (-1, 0)) [(0, 0), (1, 0), (2, 0), (3, 0)]),
 
     -- moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
-    ("testMoveTiles_+x",       expectEqual (moveTiles ( 1,  0) [TL (0, 0) 1]) ([TL (3,0) 1], [LM (-0.75,-0.75) (0.75,-0.75) 1 1], True)),
-    ("testMoveTiles_-x",       expectEqual (moveTiles (-1,  0) [TL (3, 0) 1]) ([TL (0,0) 1], [LM (0.75,-0.75) (-0.75,-0.75) 1 1], True)),
-    ("testMoveTiles_2+x",      expectEqual (moveTiles ( 1,  0) [TL (0, 3) 1, TL (0, 2) 1]) ([TL (3, 2) 1, TL (3,3) 1], [enMotion (TL (0, 2) 1) (TL (3, 2) 1), enMotion (TL (0, 3) 1) (TL (3, 3) 1)], True)),
-    ("testMoveTiles_2-y",      expectEqual (moveTiles ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1]) ([TL {pos = (0,0), val = 2}],[LM {cur = (-0.75,0.25), dest = (-0.75,-0.75), valCur = 2, valDest = 2}],True)), -- consolidate happens first and we cannot encode the value change into LM
+    ("testMoveTiles_+x",       expectEqual (moveTiles False ( 1,  0) [TL (0, 0) 1]) ([TL (3,0) 1], [LM (-0.75,-0.75) (0.75,-0.75) 1 1], True)),
+    ("testMoveTiles_-x",       expectEqual (moveTiles False (-1,  0) [TL (3, 0) 1]) ([TL (0,0) 1], [LM (0.75,-0.75) (-0.75,-0.75) 1 1], True)),
+    ("testMoveTiles_2+x",      expectEqual (moveTiles False ( 1,  0) [TL (0, 3) 1, TL (0, 2) 1]) ([TL (3, 2) 1, TL (3,3) 1], [enMotion (TL (0, 2) 1) (TL (3, 2) 1), enMotion (TL (0, 3) 1) (TL (3, 3) 1)], True)),
+    ("testMoveTiles_2-y",      expectEqual (moveTiles False ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1]) ([TL {pos = (0,0), val = 2}],[LM (-0.75,0.25) (-0.75,-0.75) 1 2, LM (-0.75,0.75) (-0.75,-0.75) 1 2],True)),
 
     -- sortBy (sortDir dir) tiles
     ("sortTiles-y",            expectEqual (sortBy (sortDir (0, -1))  [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 2) 1, TL (0, 3) 1, TL (1, 2) 1])),
     ("sortTiles+y",            expectEqual (sortBy (sortDir (0,  1))  [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1])),
 
-    ("testMoveTiles_3-y_consolidate",        expectEqual ((\(a, b, c) -> a)$ moveTiles ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 0) 2, TL (1,0) 1]))
+    ("testMoveTiles_3-y_consolidate",        expectEqual ((\(a, b, c) -> a)$ moveTiles False ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 0) 2, TL (1,0) 1]))
     ]
 
 runTest (nm, m) = putStrLn (nm ++ " -> " ++ m)

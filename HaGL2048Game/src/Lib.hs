@@ -64,6 +64,9 @@ sortDir (_, _) _ _ = EQ
 samePos :: Tile -> Tile -> Bool
 samePos t1 t2 = (pos t1) == (pos t2)
 
+sameVal :: Tile -> Tile -> Bool
+sameVal t1 t2 = (val t1) == (val t2)
+
 moveDir :: (Int, Int) -> [Tile] -> [Tile]
 moveDir dir tls = concat $ zipWith (\x y -> map (fn dir x) y) (dirNum dir) (groupBy (samePos) tls)
     where
@@ -81,14 +84,12 @@ dirNum (0, -1) = [(0, y) | y <- [0..(grids - 1)]]
 consolidateTiles :: [Tile] -> [Tile]
 consolidateTiles [] = []
 consolidateTiles [t] = [t]
-consolidateTiles (t1:t2:ts) = if (v1 == v2 && (abs $ x1 - x2) + (abs $ y1 - y2) == 1) then
-         ((TL (x1, y1) (v1 + v1)) : (TL (x1, y1) (v1 + v1)) : (consolidateTiles ts)) 
+consolidateTiles (t1:t2:ts) = if (sameVal t1 t2) then
+         (mergedTL : mergedTL : (consolidateTiles ts)) 
          else (t1 : (consolidateTiles $ t2:ts))
     where
-        (x1, y1) =  pos t1
+        mergedTL = TL (pos t1) (v1 + v1)
         v1 = val t1
-        (x2, y2) = pos t2
-        v2 = val t2
 
 filterDuplicate :: [Tile] -> [Tile]
 filterDuplicate [] = []
@@ -97,16 +98,15 @@ filterDuplicate (a1:a2:as)
     | (pos a1) == (pos a2) = a2 : (filterDuplicate as)
     | otherwise = a1 : (filterDuplicate (a2:as))
 
-moveTiles :: (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
-moveTiles dir tiles = (
-    if (noNew) then tiles'' else (newTile : tiles'') ,
-    if (noNew) then lms else (stillMotion newTile : lms), changed)
+moveTiles :: Bool -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
+moveTiles fAddNew dir tiles = 
+    if (noNew) then (tiles'', lms, changed) 
+    else ((newTile : tiles'') ,(stillMotion newTile : lms), changed)
   where
-    --tilesSorted = concatMap consolidateTiles $ splitDir dir $ sortBy (sortDir dir) tiles
     tilesSorted = sortBy (sortDir dir) tiles
-    tiles' = concat $ map (consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
+    tiles' = concat $ map (moveDir dir . consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
     changed = tilesSorted /= tiles'
     tiles'' = filterDuplicate tiles'
     newTile = (TL (0, 3) 1)
-    noNew = any (\x -> (pos x) == (pos newTile)) tiles''
+    noNew = (not fAddNew) || (any (samePos newTile) tiles'')
     lms = zipWith (enMotion) tilesSorted tiles'
