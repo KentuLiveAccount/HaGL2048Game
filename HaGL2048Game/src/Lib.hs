@@ -47,6 +47,13 @@ predDir ( 0,  0) (TL (x1, _) _) (TL (x2, _) _) = True
 predDir ( 0,  _) (TL (x1, _) _) (TL (x2, _) _) = x1 == x2
 predDir ( _,  0) (TL (_, y1) _) (TL (_, y2) _) = y1 == y2
 
+foo :: (a -> a -> Maybe [a]) -> [a] -> [a]
+foo _ [] = []
+foo _ [a] = [a]
+foo f (a1:a2:as) = case (f a1 a2) of
+    Just aa   -> aa ++ (foo f as)
+    otherwise -> a1 : (foo f (a2:as))
+
 splitDir :: (Int, Int) -> [Tile] -> [[Tile]]
 splitDir _ [] = []
 splitDir _ [t] = [[t]]
@@ -76,27 +83,18 @@ moveDir dir tls = concat $ zipWith (\x y -> map (fn dir x) y) (dirNum dir) (grou
     fn (0, _) ( _, yn) (TL (x, y) v) = TL ( x, yn) v
 
 dirNum :: (Int, Int) -> [(Int, Int)]
-dirNum (1, 0) = [(x, 0) | x <- (reverse [0..(grids - 1)])]
-dirNum (-1, 0) = [(x, 0) | x <- [0..(grids - 1)]]
-dirNum (0, 1) = [(0, y) | y <- (reverse [0..(grids - 1)])]
-dirNum (0, -1) = [(0, y) | y <- [0..(grids - 1)]]
+dirNum ( 1,  0) = [(x, 0) | x <- (reverse [0..(grids - 1)])]
+dirNum (-1,  0) = [(x, 0) | x <- [0..(grids - 1)]]
+dirNum ( 0,  1) = [(0, y) | y <- (reverse [0..(grids - 1)])]
+dirNum ( 0, -1) = [(0, y) | y <- [0..(grids - 1)]]
 
 consolidateTiles :: [Tile] -> [Tile]
-consolidateTiles [] = []
-consolidateTiles [t] = [t]
-consolidateTiles (t1:t2:ts) = if (sameVal t1 t2) then
-         (mergedTL : mergedTL : (consolidateTiles ts)) 
-         else (t1 : (consolidateTiles $ t2:ts))
+consolidateTiles = foo (\t1 t2 -> if (sameVal t1 t2) then Just [doubleVal t1, doubleVal t1] else Nothing)
     where
-        mergedTL = TL (pos t1) (v1 + v1)
-        v1 = val t1
+        doubleVal (TL pos v) = TL pos (v+v)
 
 filterDuplicate :: [Tile] -> [Tile]
-filterDuplicate [] = []
-filterDuplicate [a] = [a]
-filterDuplicate (a1:a2:as)
-    | (pos a1) == (pos a2) = a2 : (filterDuplicate as)
-    | otherwise = a1 : (filterDuplicate (a2:as))
+filterDuplicate = foo (\a1 a2 -> if (pos a1) == (pos a2) then Just [a2] else Nothing)
 
 moveTiles :: Bool -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
 moveTiles fAddNew dir tiles = 
