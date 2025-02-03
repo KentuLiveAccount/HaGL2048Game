@@ -7,6 +7,7 @@ import Data.IORef
 
 divisor = 24
 
+-- wh for width and height
 wh :: GLfloat
 wh = ((2::GLfloat) / (fromIntegral grids))
 
