@@ -4,6 +4,9 @@ import Lib
 
 import Graphics.UI.GLUT
 import Data.IORef
+import Data.List (cycle, unfoldr)
+import System.Random
+import System.CPUTime
 
 divisor = 24
 
@@ -56,11 +59,12 @@ animateLm (LM (cx, cy) (dx, dy) vs vd) = (LM (cx', cy') (dx, dy) vs' vd)
 data AppState = AS {
   tiles :: [Tile],
   motions :: [LinearMotion], -- Left (cur), (to) | Right (cur)
-  interval :: Timeout -- time out intervals
+  interval :: Timeout, -- time out intervals
+  rands :: [Int]
   } deriving (Show)
 
-initialAppState :: AppState
-initialAppState = AS tiles (initialLMs tiles) 0
+initialAppState :: [Int] -> AppState
+initialAppState rs = AS tiles (initialLMs tiles) 0 rs
   where
 --    tiles = [TL (0, 3)]
     tiles = [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1, TL (1, 1) 1]
@@ -68,12 +72,12 @@ initialAppState = AS tiles (initialLMs tiles) 0
     initialLMs  = map (stillMotion)
 
 onMove :: (Int, Int) -> AppState -> AppState
-onMove mv (AS tls lms _) = (AS tls' lms' (if f then 16 else 0))
+onMove mv (AS tls lms _ rs) = (AS tls' lms' (if f then 16 else 0) rs')
     where
-      (tls', lms', f) = moveTiles True mv tls
+      (tls', lms', f, rs') = moveTiles rs mv tls
 
 onTime :: AppState -> AppState
-onTime (AS tls lms to) = (AS tls lms' to')
+onTime (AS tls lms to rs) = (AS tls lms' to' rs)
   where
     lms' = map (animateLm) lms
     to' = if (anyMotion lms) then to else 0
@@ -81,10 +85,19 @@ onTime (AS tls lms to) = (AS tls lms' to')
 winWidth :: GLsizei
 winWidth = 600
 
+genRandom :: IO [Int]
+genRandom = let
+    randStep :: (Word, Word) -> StdGen -> Maybe (Word, StdGen)
+    randStep range gen = Just $ randomR range gen
+  in do
+    tim <- getCPUTime
+    return $ map (fromIntegral) $ take 97 $ unfoldr (randStep (0, fromIntegral $ grids * grids - 1)) (mkStdGen (fromIntegral $ tim `mod` 7919))
+
 main :: IO ()
 main = do
   (_progName, _args) <- getArgsAndInitialize
-  stateRef <- newIORef initialAppState
+  rs <- genRandom
+  stateRef <- newIORef $ initialAppState (cycle rs)
   initialDisplayMode $= [DoubleBuffered]
   _window <- createWindow "Hello World"
   displayCallback $= (display stateRef)
@@ -110,7 +123,7 @@ renderLabel (LM (x, y) (_, _) v _) = do
 
 display :: IORef AppState -> DisplayCallback
 display ior = do 
-  (AS _ lms _) <- readIORef ior
+  lms <- readIORef ior >>= return . motions
   clear [ColorBuffer] -- ColorBuffer :: ClearBuffer
   preservingMatrix ( do
     --scale 0.8 0.8 (0.8::GLfloat)
@@ -132,7 +145,7 @@ display ior = do
 
 updateTimer :: IORef AppState -> IO ()
 updateTimer ior = do
-    as@(AS _ _ timeout) <- readIORef ior
+    timeout <- readIORef ior >>= return . interval
     if (timeout > 0) then addTimerCallback timeout $ timerProc ior else return ()
 
 timerProc :: IORef AppState -> IO ()

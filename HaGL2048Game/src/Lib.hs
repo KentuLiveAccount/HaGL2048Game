@@ -96,15 +96,24 @@ consolidateTiles = foo (\t1 t2 -> if (sameVal t1 t2) then Just [doubleVal t1, do
 filterDuplicate :: [Tile] -> [Tile]
 filterDuplicate = foo (\a1 a2 -> if (pos a1) == (pos a2) then Just [a2] else Nothing)
 
-moveTiles :: Bool -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool)
-moveTiles fAddNew dir tiles = 
-    if (noNew) then (tiles'', lms, changed) 
-    else ((newTile : tiles'') ,(stillMotion newTile : lms), changed)
+findNewPos :: [Tile] -> [Int] -> ((Int, Int), [Int])
+findNewPos tiles ints = ((i `div` grids, i `mod` grids), is)
+    where
+        (i:is) = dropWhile (reject) ints
+        poss = map ((\(x, y) -> x * grids + y ) . pos) tiles
+        reject :: Int -> Bool
+        reject i = any (== (i `mod` (grids * grids))) poss
+
+moveTiles :: [Int] -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool, [Int])
+moveTiles news dir tiles = 
+    if (noNew) then (tiles'', lms, changed, news') 
+    else ((newTile : tiles'') ,(stillMotion newTile : lms), changed, news')
   where
     tilesSorted = sortBy (sortDir dir) tiles
     tiles' = concat $ map (moveDir dir . consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
     changed = tilesSorted /= tiles'
     tiles'' = filterDuplicate tiles'
-    newTile = (TL (0, 3) 1)
-    noNew = (not fAddNew) || (any (samePos newTile) tiles'')
+    (newPos, news') = findNewPos tiles'' news
+    newTile = TL newPos 1
+    noNew = (news == []) || (any (samePos newTile) tiles'')
     lms = zipWith (enMotion) tilesSorted tiles'
