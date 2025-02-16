@@ -106,7 +106,8 @@ findNewPos tiles ints = ((i `div` grids, i `mod` grids), is)
 
 moveTiles :: [Int] -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool, [Int])
 moveTiles news dir tiles = 
-    if (noNew) then (tiles'', lms, changed, news') 
+    if (not changed) then (tiles, map stillMotion tiles, False, news)
+    else if (noNew) then (tiles'', lms, changed, news') 
     else ((newTile : tiles'') ,(stillMotion newTile : lms), changed, news')
   where
     tilesSorted = sortBy (sortDir dir) tiles
@@ -115,5 +116,5 @@ moveTiles news dir tiles =
     tiles'' = filterDuplicate tiles'
     (newPos, news') = findNewPos tiles'' news
     newTile = TL newPos 1
-    noNew = (news == []) || (any (samePos newTile) tiles'')
+    noNew = (changed == False) || (news == []) || (any (samePos newTile) tiles'')
     lms = zipWith (enMotion) tilesSorted tiles'
