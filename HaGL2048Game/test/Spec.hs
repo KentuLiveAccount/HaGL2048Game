@@ -35,7 +35,7 @@ tests = [
     ("sortTiles-y",            expectEqual (sortBy (sortDir (0, -1))  [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 2) 1, TL (0, 3) 1, TL (1, 2) 1])),
     ("sortTiles+y",            expectEqual (sortBy (sortDir (0,  1))  [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1])),
 
-    ("testMoveTiles_3-y_consolidate", expectEqual ((\(a, b, c) -> a)$ moveTiles [] ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 0) 2, TL (1,0) 1]))
+    ("testMoveTiles_3-y_consolidate", expectEqual ((\(a, _, _, _) -> a)$ moveTiles [] ( 0, -1) [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1]) ([TL (0, 0) 2, TL (1,0) 1]))
     ]
 
 runTest (nm, m) = putStrLn (nm ++ " -> " ++ m)

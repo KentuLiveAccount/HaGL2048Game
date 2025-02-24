@@ -15,6 +15,7 @@ module Lib (
 
 import Graphics.UI.GLUT (GLfloat)
 import Data.List (sortBy, groupBy)
+import Data.Tuple (swap)
 
 data Tile = TL {pos :: (Int, Int), val :: Int} deriving (Eq, Show)
 
@@ -37,10 +38,10 @@ gridPosToPos v = -1 + increments + 2 * increments * (fromIntegral v)
 
 
 stillMotion :: Tile -> LinearMotion
-stillMotion (TL (x, y) v) =LM (gridPosToPos x, gridPosToPos y) (gridPosToPos x, gridPosToPos y) v v
+stillMotion (TL (x, y) v) = LM (gridPosToPos x, gridPosToPos y) (gridPosToPos x, gridPosToPos y) v v
 
 enMotion :: Tile -> Tile -> LinearMotion
-enMotion (TL (xs, ys) vs) (TL (xd, yd) vd) =LM (gridPosToPos xs, gridPosToPos ys) (gridPosToPos xd, gridPosToPos yd) vs vd
+enMotion (TL (xs, ys) vs) (TL (xd, yd) vd) = LM (gridPosToPos xs, gridPosToPos ys) (gridPosToPos xd, gridPosToPos yd) vs vd
 
 predDir :: (Int, Int) -> Tile -> Tile -> Bool
 predDir ( 0,  0) (TL (x1, _) _) (TL (x2, _) _) = True
@@ -84,9 +85,9 @@ moveDir dir tls = concat $ zipWith (\x y -> map (fn dir x) y) (dirNum dir) (grou
 
 dirNum :: (Int, Int) -> [(Int, Int)]
 dirNum ( 1,  0) = [(x, 0) | x <- (reverse [0..(grids - 1)])]
-dirNum (-1,  0) = [(x, 0) | x <- [0..(grids - 1)]]
-dirNum ( 0,  1) = [(0, y) | y <- (reverse [0..(grids - 1)])]
-dirNum ( 0, -1) = [(0, y) | y <- [0..(grids - 1)]]
+dirNum (-1,  0) = reverse  $ dirNum (1, 0)
+dirNum ( 0,  1) = map swap $ dirNum (1, 0)
+dirNum ( 0, -1) = reverse  $ dirNum (0, 1)
 
 consolidateTiles :: [Tile] -> [Tile]
 consolidateTiles = foo (\t1 t2 -> if (sameVal t1 t2) then Just [doubleVal t1, doubleVal t1] else Nothing)
@@ -107,7 +108,7 @@ findNewPos tiles ints = ((i `div` grids, i `mod` grids), is)
 moveTiles :: [Int] -> (Int, Int) -> [Tile] -> ([Tile], [LinearMotion], Bool, [Int])
 moveTiles news dir tiles = 
     if (not changed) then (tiles, map stillMotion tiles, False, news)
-    else if (noNew) then (tiles'', lms, changed, news') 
+    else if (noNew) then (tiles'', lms, changed, news) 
     else ((newTile : tiles'') ,(stillMotion newTile : lms), changed, news')
   where
     tilesSorted = sortBy (sortDir dir) tiles
@@ -116,5 +117,5 @@ moveTiles news dir tiles =
     tiles'' = filterDuplicate tiles'
     (newPos, news') = findNewPos tiles'' news
     newTile = TL newPos 1
-    noNew = (changed == False) || (news == []) || (any (samePos newTile) tiles'')
+    noNew = (not changed) || (null news) || (any (samePos newTile) tiles'')
     lms = zipWith (enMotion) tilesSorted tiles'
