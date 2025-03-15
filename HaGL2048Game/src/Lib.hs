@@ -62,12 +62,15 @@ splitDir dir (t:tls) = (t:ms): (splitDir dir us)
     where
     (ms, us) = span (predDir dir t) tls
 
-sortDir :: (Int, Int) -> Tile -> Tile -> Ordering
-sortDir ( 0, -1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xa xb)
-sortDir ( 0,  1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare yb ya) else (compare xa xb)
-sortDir (-1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xa xb) else (compare yb ya)
-sortDir ( 1,  0) (TL (xa, ya) _) (TL (xb, yb) _) = if (ya == yb) then (compare xb xa) else (compare ya yb)
-sortDir (_, _) _ _ = EQ
+swapXY :: Tile -> Tile
+swapXY (TL (x, y) v) = TL (y, x) v
+
+compareDir :: (Int, Int) -> Tile -> Tile -> Ordering
+compareDir ( 0,  1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare yb ya) else (compare xa xb)
+compareDir ( 0, -1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xa xb)
+compareDir ( 1,  0) t1 t2 = compareDir (0,  1) (swapXY t1) (swapXY t2)
+compareDir (-1,  0) t1 t2 = compareDir (0, -1) (swapXY t1) (swapXY t2)
+compareDir (_, _) _ _ = EQ
 
 samePos :: Tile -> Tile -> Bool
 samePos t1 t2 = (pos t1) == (pos t2)
@@ -111,7 +114,7 @@ moveTiles news dir tiles =
     else if (noNew) then (tiles'', lms, changed, news) 
     else ((newTile : tiles'') ,(stillMotion newTile : lms), changed, news')
   where
-    tilesSorted = sortBy (sortDir dir) tiles
+    tilesSorted = sortBy (compareDir dir) tiles
     tiles' = concat $ map (moveDir dir . consolidateTiles . moveDir dir) $ splitDir dir tilesSorted
     changed = tilesSorted /= tiles'
     tiles'' = filterDuplicate tiles'
