@@ -19,6 +19,15 @@ import Data.Tuple (swap)
 
 data Tile = TL {pos :: (Int, Int), val :: Int} deriving (Eq, Show)
 
+swapXY :: Tile -> Tile
+swapXY (TL (x, y) v) = TL (y, x) v
+
+samePos :: Tile -> Tile -> Bool
+samePos t1 t2 = (pos t1) == (pos t2)
+
+sameVal :: Tile -> Tile -> Bool
+sameVal t1 t2 = (val t1) == (val t2)
+
 data LinearMotion = LM {
     cur :: (GLfloat, GLfloat),
     dest :: (GLfloat, GLfloat),
@@ -62,21 +71,12 @@ splitDir dir (t:tls) = (t:ms): (splitDir dir us)
     where
     (ms, us) = span (predDir dir t) tls
 
-swapXY :: Tile -> Tile
-swapXY (TL (x, y) v) = TL (y, x) v
-
 compareDir :: (Int, Int) -> Tile -> Tile -> Ordering
 compareDir ( 0,  1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare yb ya) else (compare xa xb)
 compareDir ( 0, -1) (TL (xa, ya) _) (TL (xb, yb) _) = if (xa == xb) then (compare ya yb) else (compare xa xb)
 compareDir ( 1,  0) t1 t2 = compareDir (0,  1) (swapXY t1) (swapXY t2)
 compareDir (-1,  0) t1 t2 = compareDir (0, -1) (swapXY t1) (swapXY t2)
 compareDir (_, _) _ _ = EQ
-
-samePos :: Tile -> Tile -> Bool
-samePos t1 t2 = (pos t1) == (pos t2)
-
-sameVal :: Tile -> Tile -> Bool
-sameVal t1 t2 = (val t1) == (val t2)
 
 moveDir :: (Int, Int) -> [Tile] -> [Tile]
 moveDir dir tls = concat $ zipWith (\x y -> map (fn dir x) y) (dirNum dir) (groupBy (samePos) tls)
