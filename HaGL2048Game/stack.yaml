@@ -29,7 +29,8 @@ snapshot:
 #   subdirs:
 #   - auto-update
 #   - wai
-packages: 
+packages:
+- 2048Lib/ 
 - .
 
 # Dependency packages to be pulled from upstream that are not in the snapshot.

@@ -23,15 +23,12 @@ source-repository head
   location: https://github.com/githubuser/HaGL2048Game
 
 library
-  exposed-modules:
-      Lib
   other-modules:
       Paths_HaGL2048Game
-  hs-source-dirs:
-      src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      GLUT ==2.7.0.16
+      2048Lib
+    , GLUT ==2.7.0.16
     , base >=4.7 && <5
     , random >=1.2
   default-language: Haskell2010
@@ -44,7 +41,8 @@ executable HaGL2048Game
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      GLUT ==2.7.0.16
+      2048Lib
+    , GLUT ==2.7.0.16
     , HaGL2048Game
     , base >=4.7 && <5
     , random >=1.2
@@ -59,7 +57,8 @@ test-suite HaGL2048Game-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      GLUT ==2.7.0.16
+      2048Lib
+    , GLUT ==2.7.0.16
     , HaGL2048Game
     , base >=4.7 && <5
     , random >=1.2
