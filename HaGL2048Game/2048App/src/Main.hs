@@ -64,15 +64,15 @@ data AppState = AS {
   } deriving (Show)
 
 initialAppState :: [Int] -> AppState
-initialAppState rs = AS tiles (initialLMs tiles) 0 rs
+initialAppState rs = AS initialTiles (initialLMs initialTiles) 0 rs
   where
 --    tiles = [TL (0, 3)]
-    tiles = [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1, TL (1, 1) 1]
+    initialTiles = [TL (0, 3) 1, TL (0, 2) 1, TL (1, 2) 1, TL (1, 1) 1]
     initialLMs :: [Tile] -> [LinearMotion]
     initialLMs  = map (stillMotion)
 
 onMove :: (Int, Int) -> AppState -> AppState
-onMove mv (AS tls lms _ rs) = (AS tls' lms' (if f then 16 else 0) rs')
+onMove mv (AS tls _ _ rs) = (AS tls' lms' (if f then 16 else 0) rs')
     where
       (tls', lms', f, rs') = moveTiles rs mv tls
 

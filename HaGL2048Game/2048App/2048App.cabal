@@ -4,9 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           HaGL2048Game
+name:           2048App
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/HaOpenGL#readme>
+description:    Please see the README on GitHub at <https://github.com/githubuser/HaGL2048Game#readme>
 homepage:       https://github.com/githubuser/HaGL2048Game#readme
 bug-reports:    https://github.com/githubuser/HaGL2048Game/issues
 author:         Author name here
@@ -24,7 +24,7 @@ source-repository head
 
 library
   other-modules:
-      Paths_HaGL2048Game
+      Paths_2048App
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       2048Lib
@@ -36,30 +36,14 @@ library
 executable HaGL2048Game
   main-is: Main.hs
   other-modules:
-      Paths_HaGL2048Game
+      Paths_2048App
   hs-source-dirs:
-      app
+      src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      2048Lib
+      2048App
+    , 2048Lib
     , GLUT ==2.7.0.16
-    , HaGL2048Game
-    , base >=4.7 && <5
-    , random >=1.2
-  default-language: Haskell2010
-
-test-suite HaGL2048Game-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_HaGL2048Game
-  hs-source-dirs:
-      test
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      2048Lib
-    , GLUT ==2.7.0.16
-    , HaGL2048Game
     , base >=4.7 && <5
     , random >=1.2
   default-language: Haskell2010

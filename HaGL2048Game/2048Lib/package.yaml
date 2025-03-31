@@ -12,7 +12,7 @@ extra-source-files:
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
-# category:            Web
+# category:            Game Data Model
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
@@ -22,7 +22,6 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - GLUT == 2.7.0.16
-- random >= 1.2
 
 ghc-options:
 - -Wall
@@ -39,7 +38,7 @@ library:
   source-dirs: src
 
 tests:
-  DataModel-test:
+  2048Lib-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

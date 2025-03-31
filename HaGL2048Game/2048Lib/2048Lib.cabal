@@ -35,10 +35,9 @@ library
   build-depends:
       GLUT ==2.7.0.16
     , base >=4.7 && <5
-    , random >=1.2
   default-language: Haskell2010
 
-test-suite DataModel-test
+test-suite 2048Lib-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
@@ -52,5 +51,4 @@ test-suite DataModel-test
       2048Lib
     , GLUT ==2.7.0.16
     , base >=4.7 && <5
-    , random >=1.2
   default-language: Haskell2010

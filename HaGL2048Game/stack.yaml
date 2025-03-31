@@ -31,7 +31,7 @@ snapshot:
 #   - wai
 packages:
 - 2048Lib/ 
-- .
+- 2048App/ 
 
 # Dependency packages to be pulled from upstream that are not in the snapshot.
 # These entries can reference officially published versions as well as

@@ -1,4 +1,4 @@
-name:                HaGL2048Game
+name:                2048App
 version:             0.1.0.0
 github:              "githubuser/HaGL2048Game"
 license:             BSD3
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/HaOpenGL#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/HaGL2048Game#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -42,21 +42,10 @@ library:
 executables:
   HaGL2048Game:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         src
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - HaGL2048Game
-
-tests:
-  HaGL2048Game-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - HaGL2048Game
+    - 2048App
